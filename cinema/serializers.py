@@ -112,3 +112,20 @@ class OrderSerializer(serializers.ModelSerializer):
             for ticket_data in tickets_data:
                 Ticket.objects.create(order=order, **ticket_data)
         return order
+
+    def update(self, instance, validated_data):
+        tickets_data = validated_data.pop("tickets", None)
+        instance = super().update(instance, validated_data)
+
+        if tickets_data is not None:
+            for ticket_data in tickets_data:
+                ticket_id = ticket_data.get("id")
+                if ticket_id:
+                    ticket = instance.tickets.get(id=ticket_id)
+                    for attr, value in ticket_data.items():
+                        setattr(ticket, attr, value)
+                    ticket.save()
+                else:
+                    Ticket.objects.create(order=instance, **ticket_data)
+
+        return instance
