@@ -1,3 +1,5 @@
+from datetime import datetime as dt
+
 from rest_framework import viewsets
 from rest_framework.pagination import PageNumberPagination
 
@@ -23,6 +25,10 @@ from cinema.serializers import (
     OrderSerializer,
     OrderSerializerList,
 )
+
+
+def split_int_string_by_comma(v_str: str) -> list:
+    return [int(num) for num in v_str.split(",")]
 
 
 class GenreViewSet(viewsets.ModelViewSet):
@@ -53,6 +59,26 @@ class MovieViewSet(viewsets.ModelViewSet):
 
         return MovieSerializer
 
+    def get_queryset(self):
+        queryset = Movie.objects.all()
+        genres = self.request.query_params.get("genres")
+        actors = self.request.query_params.get("actors")
+        title = self.request.query_params.get("title")
+        if genres:
+            queryset = queryset.filter(
+                genres__in=split_int_string_by_comma(genres)
+            )
+        elif actors:
+            queryset = queryset.filter(
+                actors__in=split_int_string_by_comma(actors)
+            )
+        elif title:
+            queryset = queryset.filter(
+                title__icontains=title
+            )
+            return queryset
+        return queryset
+
 
 class MovieSessionViewSet(viewsets.ModelViewSet):
     queryset = MovieSession.objects.all()
@@ -66,6 +92,18 @@ class MovieSessionViewSet(viewsets.ModelViewSet):
             return MovieSessionDetailSerializer
 
         return MovieSessionSerializer
+
+    def get_queryset(self):
+        queryset = MovieSession.objects.all()
+        date_str = self.request.query_params.get("date")
+        movie = self.request.query_params.get("movie")
+        if date_str:
+            date = dt.strptime(date_str, "%Y-%m-%d")
+            queryset = queryset.filter(
+                    show_time__date=date
+                )
+            return queryset
+        return queryset
 
 
 class OrderPagination(PageNumberPagination):
