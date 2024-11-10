@@ -1,5 +1,6 @@
 from datetime import datetime as dt
 
+from django.db.models import Count, F
 from rest_framework import viewsets
 from rest_framework.pagination import PageNumberPagination
 
@@ -97,13 +98,23 @@ class MovieSessionViewSet(viewsets.ModelViewSet):
         queryset = MovieSession.objects.all()
         date_str = self.request.query_params.get("date")
         movie = self.request.query_params.get("movie")
+        filters = {}
         if date_str:
             date = dt.strptime(date_str, "%Y-%m-%d")
-            queryset = queryset.filter(
-                    show_time__date=date
+            filters["show_time__date"] = date
+        if movie:
+            filters["movie__id"] = int(movie)
+        if self.action == "list":
+            queryset = (
+                queryset
+                .select_related("cinema_hall")
+                .annotate(
+                    tickets_available=F("cinema_hall__rows")
+                    * F("cinema_hall__seats_in_row")
+                    - Count("tickets")
                 )
-            return queryset
-        return queryset
+            ).order_by("id")
+        return queryset.filter(**filters)
 
 
 class OrderPagination(PageNumberPagination):
