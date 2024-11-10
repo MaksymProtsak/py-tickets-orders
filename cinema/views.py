@@ -77,7 +77,6 @@ class MovieViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(
                 title__icontains=title
             )
-            return queryset
         return queryset
 
 
